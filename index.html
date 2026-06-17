@@ -345,68 +345,120 @@
     min-width: 50px;
   }
 
-  /* ── MATCHS EN COURS ── */
-  .match-card {
-    border: 1px solid var(--border);
+  /* match-card removed — résultat direct sur terrain */
+
+  /* ── STATUT TERRAIN ── */
+  .terrains-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 1.25rem; }
+  @media (max-width: 900px) { .terrains-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 500px) { .terrains-grid { grid-template-columns: 1fr; } }
+
+  .terrain-slot {
+    border: 2px solid var(--border);
     border-radius: var(--radius);
-    padding: 1rem 1.25rem;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 1rem;
+    overflow: hidden;
     background: var(--surface);
     box-shadow: var(--shadow);
-    margin-bottom: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
-  .match-team { text-align: center; }
-  .match-team-name { font-weight: 600; font-size: 15px; }
-  .match-team-pts { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-  .match-vs {
+  .terrain-slot.libre { border-color: var(--green-light); }
+  .terrain-slot.occupe { border-color: var(--wood-light); box-shadow: var(--shadow-md); }
+
+  .t-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .terrain-slot.libre .t-header { background: var(--green-pale); color: var(--green); }
+  .terrain-slot.occupe .t-header { background: var(--wood-pale); color: var(--wood); }
+  .t-header .t-elapsed { font-weight: 400; letter-spacing: 0; text-transform: none; opacity: 0.8; }
+
+  .t-libre-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .t-match-body { padding: 10px 10px 8px; }
+
+  .t-teams {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .t-win-btn {
+    flex: 1;
+    border: none;
+    background: var(--surface2);
+    cursor: pointer;
+    padding: 10px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    transition: all 0.15s;
+    position: relative;
   }
-  .vs-badge {
-    background: var(--wood-pale);
-    border: 1px solid var(--wood-light);
-    color: var(--wood);
-    border-radius: 20px;
-    padding: 3px 12px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-  .terrain-badge {
-    font-size: 11px;
+  .t-win-btn:first-child { border-right: 1px solid var(--border); }
+  .t-win-btn:hover { background: var(--green-pale); }
+  .t-win-btn:active { transform: scale(0.97); background: var(--green-pale); }
+  .t-win-btn .tw-trophy { font-size: 16px; opacity: 0; transition: opacity 0.15s; }
+  .t-win-btn:hover .tw-trophy { opacity: 1; }
+  .t-win-btn .tw-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; text-align: center; }
+  .t-win-btn .tw-sub { font-size: 10px; color: var(--text-muted); text-align: center; }
+
+  .t-vs-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    flex-shrink: 0;
+    background: var(--surface2);
+    font-size: 10px;
+    font-weight: 800;
     color: var(--text-muted);
+    letter-spacing: 0;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
   }
-  .handicap-badge {
-    font-size: 11px;
-    background: var(--blue-pale);
+
+  .t-hcap {
+    font-size: 10px;
     color: var(--blue);
+    background: var(--blue-pale);
     border-radius: 20px;
     padding: 2px 8px;
-    display: inline-block;
-    margin-top: 2px;
-  }
-  .match-actions { display: flex; gap: 8px; justify-content: center; margin-top: 10px; grid-column: 1 / -1; }
-
-  /* ── STATUT TERRAIN ── */
-  .terrains-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.25rem; }
-  @media (max-width: 700px) { .terrains-grid { grid-template-columns: repeat(2, 1fr); } }
-  .terrain-slot {
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px;
     text-align: center;
-    transition: all 0.15s;
+    margin-bottom: 6px;
   }
-  .terrain-slot.libre { border-color: var(--green-light); background: var(--green-pale); }
-  .terrain-slot.occupe { border-color: var(--wood-light); background: var(--wood-pale); }
-  .terrain-slot .t-num { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); text-transform: uppercase; }
-  .terrain-slot .t-status { font-size: 13px; font-weight: 600; margin-top: 4px; }
-  .terrain-slot.libre .t-status { color: var(--green); }
-  .terrain-slot.occupe .t-status { color: var(--wood); font-size: 12px; }
+
+  .t-cancel-btn {
+    display: block;
+    width: 100%;
+    border: none;
+    background: none;
+    font-size: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 3px;
+    text-align: center;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s, background 0.15s;
+  }
+  .t-cancel-btn:hover { color: var(--red); background: var(--red-pale); }
 
   /* ── TAGS STATS ── */
   .stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
@@ -635,7 +687,6 @@
     <button class="btn btn-primary" onclick="startMatch()">▶ Démarrer ce match</button>
   </div>
 
-  <div id="matchesInProgress"></div>
 </div>
 
 <!-- ═══ ÉQUIPES ═══ -->
@@ -1082,6 +1133,40 @@ function cancelMatch(matchId) {
   renderAll();
 }
 
+function quickWin(matchId, side) {
+  const m = state.activeMatches.find(x => x.id === matchId);
+  if (!m) return;
+  const tA = state.teams.find(t => t.id === m.teamA);
+  const tB = state.teams.find(t => t.id === m.teamB);
+  const winnerTeam = side === 'A' ? tA : tB;
+  const loserTeam  = side === 'A' ? tB : tA;
+  if (!confirm(`🏆 Victoire de ${winnerTeam.name} ?`)) return;
+  const rankA = getRankOf(m.teamA);
+  const rankB = getRankOf(m.teamB);
+  const n = state.teams.length;
+  const winnerRank = side === 'A' ? rankA : rankB;
+  const loserRank  = side === 'A' ? rankB : rankA;
+  const pts = calcPoints(winnerRank, loserRank, n);
+  const duration = Math.round((Date.now() - m.startTime) / 60000);
+  winnerTeam.pts += pts;
+  winnerTeam.wins += 1;
+  winnerTeam.matchesPlayed += 1;
+  loserTeam.losses += 1;
+  loserTeam.matchesPlayed += 1;
+  state.matches.unshift({
+    id: Date.now(),
+    winnerId: winnerTeam.id, loserId: loserTeam.id,
+    winnerName: winnerTeam.name, loserName: loserTeam.name,
+    ptsEarned: pts, terrain: m.terrain,
+    handicap: m.handicap, handicapFor: m.handicapFor,
+    duration, date: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  });
+  state.activeMatches = state.activeMatches.filter(x => x.id !== matchId);
+  save();
+  toast(`🏆 ${winnerTeam.name} gagne +${pts} pts !`);
+  renderAll();
+}
+
 // ═══════════════════════════════════════
 //  PARAMS ADMIN
 // ═══════════════════════════════════════
@@ -1222,27 +1307,52 @@ function renderRanking() {
 }
 
 function renderMatchTab() {
-  // Terrains
+  // ── Cartes terrain (avec saisie résultat intégrée) ──
   let terrainsHtml = '';
   for (let i = 1; i <= 4; i++) {
     const m = state.activeMatches.find(x => x.terrain === i);
     if (m) {
       const tA = state.teams.find(t => t.id === m.teamA);
       const tB = state.teams.find(t => t.id === m.teamB);
+      const rankA = getRankOf(m.teamA) + 1;
+      const rankB = getRankOf(m.teamB) + 1;
+      const elapsed = Math.round((Date.now() - m.startTime) / 60000);
+      const hcapLabel = m.handicap > 0
+        ? `🎯 ${m.handicapFor === 'A' ? esc(tA?.name) : esc(tB?.name)} démarre à ${m.handicap} pts`
+        : '';
       terrainsHtml += `<div class="terrain-slot occupe">
-        <div class="t-num">Terrain ${i}</div>
-        <div class="t-status">${esc(tA?.name || '?')} vs ${esc(tB?.name || '?')}</div>
+        <div class="t-header">
+          <span>Terrain ${i}</span>
+          <span class="t-elapsed">⏱ ${elapsed} min</span>
+        </div>
+        <div class="t-match-body">
+          ${hcapLabel ? `<div class="t-hcap">${hcapLabel}</div>` : ''}
+          <div class="t-teams">
+            <button class="t-win-btn" onclick="quickWin(${m.id},'A')" title="Victoire ${esc(tA?.name)}">
+              <span class="tw-trophy">🏆</span>
+              <span class="tw-name">${esc(tA?.name || '?')}</span>
+              <span class="tw-sub">#${rankA} · ${tA?.pts || 0} pts</span>
+            </button>
+            <div class="t-vs-divider">VS</div>
+            <button class="t-win-btn" onclick="quickWin(${m.id},'B')" title="Victoire ${esc(tB?.name)}">
+              <span class="tw-trophy">🏆</span>
+              <span class="tw-name">${esc(tB?.name || '?')}</span>
+              <span class="tw-sub">#${rankB} · ${tB?.pts || 0} pts</span>
+            </button>
+          </div>
+          <button class="t-cancel-btn" onclick="cancelMatch(${m.id})">✕ Annuler ce match</button>
+        </div>
       </div>`;
     } else {
       terrainsHtml += `<div class="terrain-slot libre">
-        <div class="t-num">Terrain ${i}</div>
-        <div class="t-status">Libre</div>
+        <div class="t-header"><span>Terrain ${i}</span></div>
+        <div class="t-libre-body">✅ Libre</div>
       </div>`;
     }
   }
   document.getElementById('terrainsGrid').innerHTML = terrainsHtml;
 
-  // Selects équipes
+  // ── Selects équipes ──
   const selA = document.getElementById('matchTeamA');
   const selB = document.getElementById('matchTeamB');
   const busyIds = new Set(state.activeMatches.flatMap(m => [m.teamA, m.teamB]));
@@ -1255,45 +1365,6 @@ function renderMatchTab() {
   const prevA = selA.value, prevB = selB.value;
   selA.innerHTML = opts; selB.innerHTML = opts;
   selA.value = prevA; selB.value = prevB;
-
-  // Matchs en cours
-  let matchHtml = '';
-  if (state.activeMatches.length === 0) {
-    matchHtml = `<div class="empty"><div class="ico">🎯</div><p>Aucun match en cours — lance un match ci-dessus !</p></div>`;
-  }
-  state.activeMatches.forEach(m => {
-    const tA = state.teams.find(t => t.id === m.teamA);
-    const tB = state.teams.find(t => t.id === m.teamB);
-    const rankA = getRankOf(m.teamA) + 1;
-    const rankB = getRankOf(m.teamB) + 1;
-    const hcapLabel = m.handicap > 0
-      ? `${m.handicapFor === 'A' ? esc(tA?.name) : esc(tB?.name)} démarre à ${m.handicap} pts`
-      : 'Pas de handicap';
-    const elapsed = Math.round((Date.now() - m.startTime) / 60000);
-    matchHtml += `<div class="match-card">
-      <div class="match-team">
-        <div class="match-team-name">${esc(tA?.name || '?')}</div>
-        <div class="match-team-pts">Place #${rankA} · ${tA?.pts || 0} pts</div>
-        <div style="font-size:11px;color:var(--text-muted);">${esc(tA?.p1)} & ${esc(tA?.p2)}</div>
-      </div>
-      <div class="match-vs">
-        <span class="vs-badge">VS</span>
-        <span class="terrain-badge">Terrain ${m.terrain}</span>
-        ${m.handicap > 0 ? `<span class="handicap-badge">🎯 ${hcapLabel}</span>` : ''}
-        <span style="font-size:11px;color:var(--text-muted);margin-top:4px;">⏱ ${elapsed} min</span>
-      </div>
-      <div class="match-team">
-        <div class="match-team-name">${esc(tB?.name || '?')}</div>
-        <div class="match-team-pts">Place #${rankB} · ${tB?.pts || 0} pts</div>
-        <div style="font-size:11px;color:var(--text-muted);">${esc(tB?.p1)} & ${esc(tB?.p2)}</div>
-      </div>
-      <div class="match-actions">
-        <button class="btn btn-primary" onclick="openResultModal(${m.id})">🏁 Saisir le résultat</button>
-        <button class="btn btn-danger btn-sm" onclick="cancelMatch(${m.id})">✕ Annuler</button>
-      </div>
-    </div>`;
-  });
-  document.getElementById('matchesInProgress').innerHTML = matchHtml;
 }
 
 function renderTeams() {
