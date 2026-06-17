@@ -99,9 +99,122 @@
   nav button.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
 
   /* ── MAIN LAYOUT ── */
-  main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+  .page-body { display: flex; align-items: flex-start; max-width: 1280px; margin: 0 auto; }
+  main { padding: 1.5rem; flex: 1; min-width: 0; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
+
+  /* ── SIDEBAR CLASSEMENT FLASH ── */
+  #sidebarRanking {
+    width: 220px;
+    flex-shrink: 0;
+    padding: 1.25rem 0.75rem 1.25rem 0;
+    position: sticky;
+    top: 57px;
+    max-height: calc(100vh - 57px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  #sidebarRanking::-webkit-scrollbar { width: 4px; }
+  #sidebarRanking::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .sidebar-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .sidebar-header {
+    background: var(--green);
+    color: white;
+    padding: 9px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-header span { font-size: 10px; opacity: 0.75; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .sidebar-row:last-child { border-bottom: none; }
+  .sidebar-row:hover { background: var(--surface2); }
+  .sidebar-pos {
+    font-size: 11px;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sp-1 { background: #ffd700; color: #6b5000; }
+  .sp-2 { background: #c0c0c0; color: #444; }
+  .sp-3 { background: #cd7f32; color: white; }
+  .sp-n { background: var(--surface2); color: var(--text-muted); font-size: 10px; }
+  .sidebar-name {
+    font-size: 12px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sidebar-pts {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+    background: var(--green-pale);
+    border-radius: 20px;
+    padding: 1px 7px;
+    flex-shrink: 0;
+  }
+  .sidebar-playing {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green-light);
+    flex-shrink: 0;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .sidebar-empty {
+    padding: 16px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  /* Masquer sidebar sur onglet classement (inutile) et admin */
+  body.tab-classement #sidebarRanking,
+  body.tab-admin #sidebarRanking { display: none; }
+  /* Sur mobile: sidebar en bas */
+  @media (max-width: 900px) {
+    .page-body { flex-direction: column; }
+    #sidebarRanking {
+      width: 100%;
+      position: static;
+      max-height: none;
+      padding: 0 1rem 0.5rem;
+      order: -1;
+    }
+    .sidebar-card { display: flex; flex-wrap: wrap; }
+    .sidebar-header { width: 100%; }
+    .sidebar-row { width: calc(50% - 0px); border-right: 1px solid var(--border); }
+    .sidebar-row:nth-child(even) { border-right: none; }
+  }
 
   /* ── CARDS ── */
   .card {
@@ -464,6 +577,16 @@
   <button onclick="switchTab('admin')">⚙️ Admin</button>
 </nav>
 
+<div class="page-body">
+
+<!-- ── SIDEBAR CLASSEMENT FLASH ── -->
+<aside id="sidebarRanking">
+  <div class="sidebar-card">
+    <div class="sidebar-header">🏆 Classement <span id="sidebarUpdated">—</span></div>
+    <div id="sidebarList"><div class="sidebar-empty">Aucune équipe</div></div>
+  </div>
+</aside>
+
 <main>
 
 <!-- ═══ CLASSEMENT ═══ -->
@@ -616,6 +739,7 @@
 </div>
 
 </main>
+</div><!-- /page-body -->
 
 <!-- ── MODAL ÉDITION ÉQUIPE ── -->
 <div class="modal-overlay" id="editModal" style="display:none;">
@@ -705,6 +829,8 @@ function switchTab(name) {
   const tabs = ['classement','matchs','equipes','historique','admin'];
   const navBtns = document.querySelectorAll('nav button');
   navBtns[tabs.indexOf(name)].classList.add('active');
+  // Sync body class for sidebar visibility
+  document.body.className = 'tab-' + name;
   renderAll();
 }
 
@@ -1018,10 +1144,34 @@ function resetAll() {
 function renderAll() {
   renderHeader();
   renderRanking();
+  renderSidebar();
   renderMatchTab();
   renderTeams();
   renderHistory();
   renderAdmin();
+}
+
+function renderSidebar() {
+  const ranking = getRanking();
+  const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('sidebarUpdated').textContent = now;
+  if (ranking.length === 0) {
+    document.getElementById('sidebarList').innerHTML = '<div class="sidebar-empty">Aucune équipe inscrite</div>';
+    return;
+  }
+  let html = '';
+  ranking.forEach((t, i) => {
+    const pos = i + 1;
+    const posClass = pos <= 3 ? 'sp-' + pos : 'sp-n';
+    const inMatch = state.activeMatches.some(m => m.teamA === t.id || m.teamB === t.id);
+    html += '<div class="sidebar-row">'
+      + '<span class="sidebar-pos ' + posClass + '">' + pos + '</span>'
+      + '<span class="sidebar-name">' + esc(t.name) + '</span>'
+      + (inMatch ? '<span class="sidebar-playing" title="En match"></span>' : '')
+      + '<span class="sidebar-pts">' + t.pts + '</span>'
+      + '</div>';
+  });
+  document.getElementById('sidebarList').innerHTML = html;
 }
 
 function renderHeader() {
@@ -1239,6 +1389,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 //  INIT
 // ═══════════════════════════════════════
 load();
+document.body.className = 'tab-classement';
 renderAll();
 
 // Rafraîchir les timers toutes les minutes
