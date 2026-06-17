@@ -377,6 +377,42 @@
   .terrain-slot.occupe .t-header { background: var(--wood-pale); color: var(--wood); }
   .t-header .t-elapsed { font-weight: 400; letter-spacing: 0; text-transform: none; opacity: 0.8; }
 
+  /* ── FILE D'ATTENTE ── */
+  .queue-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin: 0.5rem 0 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .queue-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+  .terrain-slot.queued {
+    border-color: var(--gold);
+    background: var(--gold-pale);
+    opacity: 0.92;
+  }
+  .terrain-slot.queued .t-header { background: #fef3c7; color: var(--gold); }
+  .t-queue-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .t-waiting-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 6px 6px;
+  }
   .t-libre-body {
     display: flex;
     align-items: center;
@@ -652,6 +688,7 @@
 <!-- ═══ MATCHS ═══ -->
 <div id="tab-matchs" class="tab-content">
   <div class="terrains-grid" id="terrainsGrid"></div>
+  <div id="queueSection"></div>
 
   <div class="card">
     <h2><span class="ico">➕</span> Lancer un match</h2>
@@ -669,20 +706,9 @@
         </select>
       </div>
     </div>
-    <div class="grid-2">
-      <div class="form-group">
-        <label>Terrain</label>
-        <select id="matchTerrain">
-          <option value="1">Terrain 1</option>
-          <option value="2">Terrain 2</option>
-          <option value="3">Terrain 3</option>
-          <option value="4">Terrain 4</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Handicap calculé</label>
-        <div id="handicapPreview" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text-muted); background: var(--surface2);">Sélectionner les équipes</div>
-      </div>
+    <div class="form-group">
+      <label>Handicap calculé</label>
+      <div id="handicapPreview" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text-muted); background: var(--surface2);">Sélectionner les équipes</div>
     </div>
     <button class="btn btn-primary" onclick="startMatch()">▶ Démarrer ce match</button>
   </div>
@@ -1007,17 +1033,19 @@ function updateHandicapPreview() {
   }
 }
 
+function getFreeTerrain() {
+  const used = new Set(state.activeMatches.filter(m => m.terrain).map(m => m.terrain));
+  for (let i = 1; i <= 4; i++) { if (!used.has(i)) return i; }
+  return null; // tous occupés → file d'attente
+}
+
 function startMatch() {
   const idA = parseInt(document.getElementById('matchTeamA').value);
   const idB = parseInt(document.getElementById('matchTeamB').value);
-  const terrain = parseInt(document.getElementById('matchTerrain').value);
   if (!idA || !idB) { toast('Sélectionner deux équipes !'); return; }
   if (idA === idB) { toast('Deux équipes différentes svp !'); return; }
-  if (state.activeMatches.some(m => m.terrain === terrain)) {
-    toast('Ce terrain est déjà occupé !'); return;
-  }
   if (state.activeMatches.some(m => m.teamA === idA || m.teamB === idA || m.teamA === idB || m.teamB === idB)) {
-    toast('Une de ces équipes est déjà en match !'); return;
+    toast('Une de ces équipes est déjà en match ou en attente !'); return;
   }
   const rankA = getRankOf(idA);
   const rankB = getRankOf(idB);
@@ -1026,19 +1054,35 @@ function startMatch() {
   const weakerRank = Math.max(rankA, rankB);
   const hcap = calcHandicap(strongerRank, weakerRank, n);
   const weakerIsA = rankA > rankB;
+  const terrain = getFreeTerrain(); // null = en attente
 
   state.activeMatches.push({
     id: Date.now(),
-    teamA: idA,
-    teamB: idB,
-    terrain,
+    teamA: idA, teamB: idB,
+    terrain,   // null si file d'attente
     handicap: hcap,
     handicapFor: weakerIsA ? 'A' : 'B',
-    startTime: Date.now()
+    startTime: terrain ? Date.now() : null,
+    queued: !terrain
   });
   save();
-  toast(`⚔️ Match lancé sur terrain ${terrain} !`);
+  toast(terrain ? `⚔️ Match lancé sur terrain ${terrain} !` : '⏳ Match en file d'attente !');
   renderAll();
+}
+
+// Quand un terrain se libère, on promotionne le premier match en attente
+function promoteQueued() {
+  const terrain = getFreeTerrain();
+  if (!terrain) return;
+  const waiting = state.activeMatches.find(m => m.queued);
+  if (!waiting) return;
+  waiting.terrain = terrain;
+  waiting.queued = false;
+  waiting.startTime = Date.now();
+  save();
+  const tA = state.teams.find(t => t.id === waiting.teamA);
+  const tB = state.teams.find(t => t.id === waiting.teamB);
+  toast(`🟢 ${tA?.name} vs ${tB?.name} → Terrain ${terrain} !`);
 }
 
 function openResultModal(matchId) {
@@ -1128,6 +1172,7 @@ function confirmResult() {
 function cancelMatch(matchId) {
   if (!confirm('Annuler ce match ?')) return;
   state.activeMatches = state.activeMatches.filter(m => m.id !== matchId);
+  promoteQueued();
   save();
   toast('Match annulé');
   renderAll();
@@ -1162,6 +1207,7 @@ function quickWin(matchId, side) {
     duration, date: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   });
   state.activeMatches = state.activeMatches.filter(x => x.id !== matchId);
+  promoteQueued();
   save();
   toast(`🏆 ${winnerTeam.name} gagne +${pts} pts !`);
   renderAll();
@@ -1306,43 +1352,61 @@ function renderRanking() {
   document.getElementById('rankingContainer').innerHTML = html;
 }
 
+function matchCardHtml(m, label, isQueued) {
+  const tA = state.teams.find(t => t.id === m.teamA);
+  const tB = state.teams.find(t => t.id === m.teamB);
+  const rankA = getRankOf(m.teamA) + 1;
+  const rankB = getRankOf(m.teamB) + 1;
+  const elapsed = m.startTime ? Math.round((Date.now() - m.startTime) / 60000) : 0;
+  const hcapLabel = m.handicap > 0
+    ? `🎯 ${m.handicapFor === 'A' ? esc(tA?.name) : esc(tB?.name)} démarre à ${m.handicap} pts`
+    : '';
+  const headerRight = isQueued
+    ? `<span class="t-queue-badge">⏳ En attente</span>`
+    : `<span class="t-elapsed">⏱ ${elapsed} min</span>`;
+  const winBtns = isQueued ? '' : `
+    <div class="t-teams">
+      <button class="t-win-btn" onclick="quickWin(${m.id},'A')" title="Victoire ${esc(tA?.name)}">
+        <span class="tw-trophy">🏆</span>
+        <span class="tw-name">${esc(tA?.name || '?')}</span>
+        <span class="tw-sub">#${rankA} · ${tA?.pts || 0} pts</span>
+      </button>
+      <div class="t-vs-divider">VS</div>
+      <button class="t-win-btn" onclick="quickWin(${m.id},'B')" title="Victoire ${esc(tB?.name)}">
+        <span class="tw-trophy">🏆</span>
+        <span class="tw-name">${esc(tB?.name || '?')}</span>
+        <span class="tw-sub">#${rankB} · ${tB?.pts || 0} pts</span>
+      </button>
+    </div>`;
+  const waitingNames = isQueued ? `
+    <div class="t-waiting-teams">
+      <span class="tw-name">${esc(tA?.name || '?')}</span>
+      <span style="color:var(--text-muted);font-size:11px;">vs</span>
+      <span class="tw-name">${esc(tB?.name || '?')}</span>
+    </div>` : '';
+  return `<div class="terrain-slot ${isQueued ? 'queued' : 'occupe'}">
+    <div class="t-header">
+      <span>${label}</span>
+      ${headerRight}
+    </div>
+    <div class="t-match-body">
+      ${hcapLabel ? `<div class="t-hcap">${hcapLabel}</div>` : ''}
+      ${winBtns}${waitingNames}
+      <button class="t-cancel-btn" onclick="cancelMatch(${m.id})">✕ Annuler</button>
+    </div>
+  </div>`;
+}
+
 function renderMatchTab() {
-  // ── Cartes terrain (avec saisie résultat intégrée) ──
+  // ── Grille terrains (4 fixes) + file d'attente ──
+  const playing = state.activeMatches.filter(m => !m.queued);
+  const queued  = state.activeMatches.filter(m => m.queued);
+
   let terrainsHtml = '';
   for (let i = 1; i <= 4; i++) {
-    const m = state.activeMatches.find(x => x.terrain === i);
+    const m = playing.find(x => x.terrain === i);
     if (m) {
-      const tA = state.teams.find(t => t.id === m.teamA);
-      const tB = state.teams.find(t => t.id === m.teamB);
-      const rankA = getRankOf(m.teamA) + 1;
-      const rankB = getRankOf(m.teamB) + 1;
-      const elapsed = Math.round((Date.now() - m.startTime) / 60000);
-      const hcapLabel = m.handicap > 0
-        ? `🎯 ${m.handicapFor === 'A' ? esc(tA?.name) : esc(tB?.name)} démarre à ${m.handicap} pts`
-        : '';
-      terrainsHtml += `<div class="terrain-slot occupe">
-        <div class="t-header">
-          <span>Terrain ${i}</span>
-          <span class="t-elapsed">⏱ ${elapsed} min</span>
-        </div>
-        <div class="t-match-body">
-          ${hcapLabel ? `<div class="t-hcap">${hcapLabel}</div>` : ''}
-          <div class="t-teams">
-            <button class="t-win-btn" onclick="quickWin(${m.id},'A')" title="Victoire ${esc(tA?.name)}">
-              <span class="tw-trophy">🏆</span>
-              <span class="tw-name">${esc(tA?.name || '?')}</span>
-              <span class="tw-sub">#${rankA} · ${tA?.pts || 0} pts</span>
-            </button>
-            <div class="t-vs-divider">VS</div>
-            <button class="t-win-btn" onclick="quickWin(${m.id},'B')" title="Victoire ${esc(tB?.name)}">
-              <span class="tw-trophy">🏆</span>
-              <span class="tw-name">${esc(tB?.name || '?')}</span>
-              <span class="tw-sub">#${rankB} · ${tB?.pts || 0} pts</span>
-            </button>
-          </div>
-          <button class="t-cancel-btn" onclick="cancelMatch(${m.id})">✕ Annuler ce match</button>
-        </div>
-      </div>`;
+      terrainsHtml += matchCardHtml(m, `Terrain ${i}`, false);
     } else {
       terrainsHtml += `<div class="terrain-slot libre">
         <div class="t-header"><span>Terrain ${i}</span></div>
@@ -1351,6 +1415,19 @@ function renderMatchTab() {
     }
   }
   document.getElementById('terrainsGrid').innerHTML = terrainsHtml;
+
+  // ── File d'attente ──
+  const queueEl = document.getElementById('queueSection');
+  if (queued.length === 0) {
+    queueEl.innerHTML = '';
+  } else {
+    let qHtml = `<div class="queue-title">⏳ File d'attente (${queued.length})</div><div class="queue-grid">`;
+    queued.forEach((m, idx) => {
+      qHtml += matchCardHtml(m, `Match #${idx + 1}`, true);
+    });
+    qHtml += '</div>';
+    queueEl.innerHTML = qHtml;
+  }
 
   // ── Selects équipes ──
   const selA = document.getElementById('matchTeamA');
